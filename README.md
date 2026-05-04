@@ -9,7 +9,14 @@ API RESTful em Spring Boot para gerenciamento de jogadores e times de futebol, c
 Com o Docker Desktop em execução, rode no terminal:
 
 ```bash
-docker run -d --name mysql-jogadorfutebol --rm -e MYSQL_ROOT_PASSWORD=root_pwd -e MYSQL_DATABASE=jogadorfutebol -p 3306:3306 mysql
+docker run -d \
+    --name mysql \
+    --rm \
+    -e MYSQL_ROOT_PASSWORD=root_pwd \
+    -e MYSQL_USER=new_user \
+    -e MYSQL_PASSWORD=my_pwd \
+    -p 3306:3306 \
+    mysql
 ```
 
 Aguarde cerca de 30 segundos para o MySQL inicializar.
