@@ -1,7 +1,6 @@
 package br.com.fiap.vitorportelaf.jogadorfutebol.controller;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,8 +14,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.fiap.vitorportelaf.jogadorfutebol.dto.TimeCreateRequest;
+import br.com.fiap.vitorportelaf.jogadorfutebol.dto.TimeResponse;
+import br.com.fiap.vitorportelaf.jogadorfutebol.dto.TimeUpdateRequest;
+import br.com.fiap.vitorportelaf.jogadorfutebol.mapper.TimeMapper;
 import br.com.fiap.vitorportelaf.jogadorfutebol.model.Time;
 import br.com.fiap.vitorportelaf.jogadorfutebol.repository.TimeRepository;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("api/${api.version}/times")
@@ -25,34 +29,39 @@ public class TimeController {
     @Autowired
     private TimeRepository repository;
 
+    @Autowired
+    private TimeMapper mapper;
+
     @PostMapping
-    public ResponseEntity<Time> create(@RequestBody Time time) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(repository.save(time));
+    public ResponseEntity<TimeResponse> create(@Valid @RequestBody TimeCreateRequest dtoRequest) {
+        Time time = repository.save(mapper.toModel(dtoRequest));
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDto(time));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Time> findById(@PathVariable Long id) {
+    public ResponseEntity<TimeResponse> findById(@PathVariable Long id) {
         return repository
                 .findById(id)
+                .map(mapper::toDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public ResponseEntity<List<Time>> findAll() {
-        return ResponseEntity.ok(repository.findAll());
+    public ResponseEntity<List<TimeResponse>> findAll() {
+        return ResponseEntity.ok(
+                repository.findAll().stream()
+                        .map(mapper::toDto)
+                        .toList());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Time> update(@PathVariable Long id,
-                                       @RequestBody Time time) {
+    public ResponseEntity<TimeResponse> update(@PathVariable Long id,
+                                               @RequestBody TimeUpdateRequest dtoRequest) {
 
-        Optional<Time> optTime = repository.findById(id);
-
-        if (optTime.isPresent()) {
-            time.setId(id);
-            Time timeAlterado = repository.save(time);
-            return ResponseEntity.ok(timeAlterado);
+        if (repository.existsById(id)) {
+            Time timeAlterado = repository.save(mapper.toModel(id, dtoRequest));
+            return ResponseEntity.ok(mapper.toDto(timeAlterado));
         } else {
             return ResponseEntity.notFound().build();
         }

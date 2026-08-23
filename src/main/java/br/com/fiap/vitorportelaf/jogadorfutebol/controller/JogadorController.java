@@ -1,7 +1,6 @@
 package br.com.fiap.vitorportelaf.jogadorfutebol.controller;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,8 +13,14 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import br.com.fiap.vitorportelaf.jogadorfutebol.dto.JogadorCreateRequest;
+import br.com.fiap.vitorportelaf.jogadorfutebol.dto.JogadorResponse;
+import br.com.fiap.vitorportelaf.jogadorfutebol.dto.JogadorUpdateRequest;
+import br.com.fiap.vitorportelaf.jogadorfutebol.mapper.JogadorMapper;
 import br.com.fiap.vitorportelaf.jogadorfutebol.model.Jogador;
 import br.com.fiap.vitorportelaf.jogadorfutebol.repository.JogadorRepository;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("api/${api.version}/jogadores")
@@ -24,34 +29,39 @@ public class JogadorController {
     @Autowired
     private JogadorRepository repository;
 
+    @Autowired
+    private JogadorMapper mapper;
+
     @PostMapping
-    public ResponseEntity<Jogador> create(@RequestBody Jogador jogador) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(repository.save(jogador));
+    public ResponseEntity<JogadorResponse> create(@Valid @RequestBody JogadorCreateRequest dtoRequest) {
+        Jogador jogador = repository.save(mapper.toModel(dtoRequest));
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDto(jogador));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Jogador> findById(@PathVariable Long id) {
+    public ResponseEntity<JogadorResponse> findById(@PathVariable Long id) {
         return repository
                 .findById(id)
+                .map(mapper::toDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public ResponseEntity<List<Jogador>> findAll() {
-        return ResponseEntity.ok(repository.findAll());
+    public ResponseEntity<List<JogadorResponse>> findAll() {
+        return ResponseEntity.ok(
+                repository.findAll().stream()
+                        .map(mapper::toDto)
+                        .toList());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Jogador> update(@PathVariable Long id,
-                                          @RequestBody Jogador jogador) {
+    public ResponseEntity<JogadorResponse> update(@PathVariable Long id,
+                                                  @RequestBody JogadorUpdateRequest dtoRequest) {
 
-        Optional<Jogador> optJogador = repository.findById(id);
-
-        if (optJogador.isPresent()) {
-            jogador.setId(id);
-            Jogador jogadorAlterado = repository.save(jogador);
-            return ResponseEntity.ok(jogadorAlterado);
+        if (repository.existsById(id)) {
+            Jogador jogadorAlterado = repository.save(mapper.toModel(id, dtoRequest));
+            return ResponseEntity.ok(mapper.toDto(jogadorAlterado));
         } else {
             return ResponseEntity.notFound().build();
         }
