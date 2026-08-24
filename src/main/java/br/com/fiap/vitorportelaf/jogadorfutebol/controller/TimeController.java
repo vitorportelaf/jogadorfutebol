@@ -19,7 +19,7 @@ import br.com.fiap.vitorportelaf.jogadorfutebol.dto.TimeResponse;
 import br.com.fiap.vitorportelaf.jogadorfutebol.dto.TimeUpdateRequest;
 import br.com.fiap.vitorportelaf.jogadorfutebol.mapper.TimeMapper;
 import br.com.fiap.vitorportelaf.jogadorfutebol.model.Time;
-import br.com.fiap.vitorportelaf.jogadorfutebol.repository.TimeRepository;
+import br.com.fiap.vitorportelaf.jogadorfutebol.service.TimeService;
 import jakarta.validation.Valid;
 
 @RestController
@@ -27,20 +27,20 @@ import jakarta.validation.Valid;
 public class TimeController {
 
     @Autowired
-    private TimeRepository repository;
+    private TimeService service;
 
     @Autowired
     private TimeMapper mapper;
 
     @PostMapping
     public ResponseEntity<TimeResponse> create(@Valid @RequestBody TimeCreateRequest dtoRequest) {
-        Time time = repository.save(mapper.toModel(dtoRequest));
+        Time time = service.createOrUpdate(mapper.toModel(dtoRequest));
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDto(time));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<TimeResponse> findById(@PathVariable Long id) {
-        return repository
+        return service
                 .findById(id)
                 .map(mapper::toDto)
                 .map(ResponseEntity::ok)
@@ -50,17 +50,17 @@ public class TimeController {
     @GetMapping
     public ResponseEntity<List<TimeResponse>> findAll() {
         return ResponseEntity.ok(
-                repository.findAll().stream()
+                service.findAll().stream()
                         .map(mapper::toDto)
                         .toList());
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<TimeResponse> update(@PathVariable Long id,
-                                               @RequestBody TimeUpdateRequest dtoRequest) {
+            @RequestBody TimeUpdateRequest dtoRequest) {
 
-        if (repository.existsById(id)) {
-            Time timeAlterado = repository.save(mapper.toModel(id, dtoRequest));
+        if (service.findById(id).isPresent()) {
+            Time timeAlterado = service.createOrUpdate(mapper.toModel(id, dtoRequest));
             return ResponseEntity.ok(mapper.toDto(timeAlterado));
         } else {
             return ResponseEntity.notFound().build();
@@ -69,7 +69,11 @@ public class TimeController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteById(@PathVariable Long id) {
-        repository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        if (service.findById(id).isPresent()) {
+            service.deleteById(id);
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

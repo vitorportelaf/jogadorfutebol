@@ -1,87 +1,17 @@
 # jogadorfutebol
 
-API RESTful em Spring Boot para gerenciamento de jogadores e times de futebol, com persistência em MySQL.
+API RESTful em Spring Boot para gerenciamento de jogadores e times.
 
-## Checkpoint 3 — Refatoração com DTOs e Mappers
+Este README foi reduzido para conter apenas o que é exigido na entrega: instruções
+para executar a aplicação localmente (via Maven), instruções para rodar a imagem
+Docker publicada (pull/run) com as variáveis necessárias, informação sobre
+profiles e como acessar o Swagger/OpenAPI.
 
-Nesta entrega o projeto do Checkpoint 2 foi refatorado para aplicar a separação de
-responsabilidades entre o modelo de persistência (Entities JPA) e o contrato da API (DTOs).
-As entidades, os repositories e as rotas do CRUD continuam os mesmos — o que mudou foi
-a forma como a API recebe e retorna os dados.
+---
 
-### O que mudou
+## Como rodar a aplicação (desenvolvimento)
 
-- **DTOs de request** (`dto`): `JogadorCreateRequest`, `JogadorUpdateRequest`,
-  `TimeCreateRequest` e `TimeUpdateRequest`. As Controllers não recebem mais entidades
-  JPA no corpo das requisições. Os DTOs de criação possuem validações
-  (Bean Validation: `@NotNull`, `@NotBlank`, `@Size`, `@Positive`).
-- **DTOs de response** (`dto`): `JogadorResponse` e `TimeResponse`. Todas as operações de
-  criação, consulta, atualização e listagem retornam DTOs — nenhuma entidade JPA é mais
-  exposta nas respostas.
-- **Mappers** (`mapper`): `JogadorMapper` e `TimeMapper` centralizam toda a conversão
-  entre DTOs e Entities usando ModelMapper (`toModel`, `toModel(id, dto)` e `toDto`).
-- **Controllers refatoradas**: `JogadorController` e `TimeController` agora recebem DTOs
-  de request, delegam a conversão para os Mappers e retornam DTOs de response.
-  As rotas de leitura (`findAll` e `findById`) continuam usando o verbo **GET**.
-- **Dependências novas** no `pom.xml`: `modelmapper` e `spring-boot-starter-validation`.
-
-### Estrutura de pacotes
-
-```
-br.com.fiap.vitorportelaf.jogadorfutebol
-├── controller    → JogadorController, TimeController
-├── dto           → Create/Update Requests e Responses
-├── mapper        → JogadorMapper, TimeMapper
-├── model         → Entities JPA (Jogador, Time)
-└── repository    → JogadorRepository, TimeRepository
-```
-
-### Rotas da API
-
-| Método | Rota                       | Corpo (request)        | Retorno (response)      |
-|--------|----------------------------|------------------------|-------------------------|
-| POST   | `/api/v1/jogadores`        | `JogadorCreateRequest` | `JogadorResponse`       |
-| GET    | `/api/v1/jogadores`        | —                      | `List<JogadorResponse>` |
-| GET    | `/api/v1/jogadores/{id}`   | —                      | `JogadorResponse`       |
-| PUT    | `/api/v1/jogadores/{id}`   | `JogadorUpdateRequest` | `JogadorResponse`       |
-| DELETE | `/api/v1/jogadores/{id}`   | —                      | —                       |
-| POST   | `/api/v1/times`            | `TimeCreateRequest`    | `TimeResponse`          |
-| GET    | `/api/v1/times`            | —                      | `List<TimeResponse>`    |
-| GET    | `/api/v1/times/{id}`       | —                      | `TimeResponse`          |
-| PUT    | `/api/v1/times/{id}`       | `TimeUpdateRequest`    | `TimeResponse`          |
-| DELETE | `/api/v1/times/{id}`       | —                      | —                       |
-
-Exemplo de corpo para criar um jogador:
-
-```json
-{
-  "id": 1,
-  "nome": "Vitor Portela",
-  "posicao": "Atacante",
-  "numeroCamisa": 10,
-  "nacionalidade": "Brasileiro",
-  "apelido": "Vitinho"
-}
-```
-
-Exemplo de corpo para criar um time:
-
-```json
-{
-  "id": 1,
-  "nome": "Sao Paulo FC",
-  "cidade": "Sao Paulo",
-  "estado": "SP",
-  "anoFundacao": 1930,
-  "estadio": "Morumbi"
-}
-```
-
-## Como rodar a aplicação
-
-### 1. Subir o banco de dados (MySQL via Docker)
-
-Com o Docker Desktop em execução, rode no terminal:
+1) Subir o banco MySQL (exemplo via Docker):
 
 ```bash
 docker run -d \
@@ -94,25 +24,25 @@ docker run -d \
     mysql
 ```
 
-Aguarde cerca de 30 segundos para o MySQL inicializar.
+2) Rodar a aplicação localmente (na raiz do projeto):
 
-### 2. Rodar a aplicação Spring Boot
-
-Na raiz do projeto:
+Linux / macOS:
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-No Windows:
+Windows:
 
-```bash
+```powershell
 mvnw.cmd spring-boot:run
 ```
 
-A aplicação sobe na porta **8080**.
+A aplicação sobe na porta 8080.
 
-### 3. Acessar o Swagger
+## Acessar o Swagger/OpenAPI
+
+Após a aplicação subir, o Swagger UI está disponível em:
 
 ```
 http://localhost:8080/
@@ -134,3 +64,73 @@ docker stop mysql
 - Clique em "DriverProperties" logo acima, ao lado de "Main" e clique em "Download"
 - Procure por "allowPublicKeyRetrieval" e deixe com o valor "true"
 - Clique em "Finish" e abra o banco
+
+---
+
+## Variáveis de ambiente
+
+### Linux / macOS
+
+```sh
+export DB_SERVER_URL=localhost
+export DB_SERVER_PORT=3306
+export DB_SCHEMA=jogadorfutebol
+export DB_USER=root
+export DB_PWD=root_pwd
+export SPRING_PROFILES_ACTIVE=dev
+```
+
+### Windows PowerShell
+
+```powershell
+$env:DB_SERVER_URL="localhost"
+$env:DB_SERVER_PORT="3306"
+$env:DB_SCHEMA="jogadorfutebol"
+$env:DB_USER="root"
+$env:DB_PWD="root_pwd"
+$env:SPRING_PROFILES_ACTIVE="dev"
+```
+
+---
+
+## Profile `prd` e migração
+
+Quando `SPRING_PROFILES_ACTIVE=prd` o projeto usa `spring.jpa.hibernate.ddl-auto=none`.
+Ou seja, o Hibernate NÃO cria ou atualiza tabelas nesse profile. Antes de executar a
+aplicação com `prd`, crie o schema/tabelas no banco executando o script de migration:
+`src/main/resources/migration-2026-08-23.sql`.
+
+
+## Execução com Docker
+
+Além do banco, a própria aplicação pode rodar em container.
+
+### 1. Criar a imagem
+
+Na raiz do projeto:
+
+```sh
+docker build -t jogadorfutebol:1.0 .
+```
+
+### 2. Baixar imagem do Docker Hub (se aplicável)
+
+Se a imagem estiver publicada no Docker Hub, baixe-a substituindo `<usuario>` e `<tag>`:
+
+```sh
+docker pull <usuario>/jogadorfutebol:<tag>
+```
+
+2) Executar a imagem (mapear porta 8080 e passar variáveis):
+
+```sh
+docker run \
+  -p 8080:8080 \
+  -e DB_SERVER_URL=host.docker.internal \
+  -e DB_SERVER_PORT=3306 \
+  -e DB_SCHEMA=jogadorfutebol \
+  -e DB_USER=root \
+  -e DB_PWD=root_pwd \
+  -e SPRING_PROFILES_ACTIVE=dev \
+  jogadorfutebol:1.0
+```
